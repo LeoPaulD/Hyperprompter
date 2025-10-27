@@ -19,7 +19,10 @@ let prompteurState = {
   position: 0,
   isPlaying: false,
   isMirrored: false,
-  isInverted: false
+  isInverted: false,
+  webcamEnabled: false,      // 📹 Ajout
+  webcamOpacity: 0.3,        // 📹 Ajout (30% visible)
+  webcamBlur: 3              // 📹 Ajout (3px de flou)
 };
 
 // Diffusion aux clients WebSocket
@@ -31,10 +34,11 @@ function broadcast(data) {
   });
 }
 
-// WebSocket
+// ========== WEBSOCKET ==========
+
 wss.on('connection', (ws) => {
-  console.log('Nouveau client connecté');
-  
+  console.log('✅ Nouveau client connecté');
+
   // Envoyer l'état actuel au nouveau client
   ws.send(JSON.stringify({
     type: 'init',
@@ -43,13 +47,13 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     const data = JSON.parse(message);
-    console.log('Message reçu:', data.type);
-    
+    console.log('📨 Message reçu:', data.type);
+
     // Mettre à jour l'état
     if (data.state) {
       prompteurState = { ...prompteurState, ...data.state };
     }
-    
+
     // Diffuser à tous les clients
     broadcast({
       type: data.type,
@@ -58,16 +62,18 @@ wss.on('connection', (ws) => {
   });
 
   ws.on('close', () => {
-    console.log('Client déconnecté');
+    console.log('❌ Client déconnecté');
   });
 });
 
-// API REST
+// ========== API REST - ÉTAT ==========
 
 // GET - Récupérer l'état
 app.get('/api/state', (req, res) => {
   res.json(prompteurState);
 });
+
+// ========== API REST - TEXTE ==========
 
 // POST - Mettre à jour le texte
 app.post('/api/text', (req, res) => {
@@ -76,37 +82,38 @@ app.post('/api/text', (req, res) => {
   res.json({ success: true });
 });
 
+// ========== API REST - CONTRÔLES ==========
+
 // POST - Contrôles de lecture
 app.post('/api/control/:action', (req, res) => {
-    const { action } = req.params;
-    
-    switch(action) {
-      case 'play':
-        prompteurState.isPlaying = true;
-        break;
-      case 'pause':
-       
-        prompteurState.isPlaying = false;
-        
-        // NE PAS modifier la position lors de la pause
-        break;
-      case 'forward':
-        prompteurState.position = Math.max(0, prompteurState.position + 100);
-        prompteurState.isPlaying = false; // Pause lors du saut manuel
-        break;
-      case 'backward':
-        prompteurState.position = Math.max(0, prompteurState.position - 100);
-        prompteurState.isPlaying = false; // Pause lors du saut manuel
-        break;
-      case 'reset':
-        prompteurState.position = 0;
-        prompteurState.isPlaying = false;
-        break;
-    }
-    
-    broadcast({ type: 'control', state: prompteurState });
-    res.json({ success: true, state: prompteurState });
-  });
+  const { action } = req.params;
+
+  switch(action) {
+    case 'play':
+      prompteurState.isPlaying = true;
+      break;
+    case 'pause':
+      prompteurState.isPlaying = false;
+      break;
+    case 'forward':
+      prompteurState.position = Math.max(0, prompteurState.position + 100);
+      prompteurState.isPlaying = false;
+      break;
+    case 'backward':
+      prompteurState.position = Math.max(0, prompteurState.position - 100);
+      prompteurState.isPlaying = false;
+      break;
+    case 'reset':
+      prompteurState.position = 0;
+      prompteurState.isPlaying = false;
+      break;
+  }
+
+  broadcast({ type: 'control', state: prompteurState });
+  res.json({ success: true, state: prompteurState });
+});
+
+// ========== API REST - VITESSE ==========
 
 // POST - Régler la vitesse
 app.post('/api/speed', (req, res) => {
@@ -114,6 +121,8 @@ app.post('/api/speed', (req, res) => {
   broadcast({ type: 'speed-update', state: prompteurState });
   res.json({ success: true });
 });
+
+// ========== API REST - MIROIR/INVERSION ==========
 
 // POST - Activer/désactiver le miroir
 app.post('/api/mirror', (req, res) => {
@@ -128,6 +137,85 @@ app.post('/api/invert', (req, res) => {
   broadcast({ type: 'invert-update', state: prompteurState });
   res.json({ success: true });
 });
+
+// ========== API REST - WEBCAM 📹 ==========
+
+// POST - Activer/désactiver la webcam
+app.post('/api/webcam', (req, res) => {
+  console.log('📹 Requête webcam reçue:', req.body);
+  
+  if (typeof req.body.enabled !== 'boolean') {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Le paramètre "enabled" doit être true ou false' 
+    });
+  }
+  
+  prompteurState.webcamEnabled = req.body.enabled;
+  broadcast({ type: 'webcam-update', state: prompteurState });
+  
+  console.log('✅ Webcam changée:', prompteurState.webcamEnabled);
+  
+  res.json({ 
+    success: true,
+    webcamEnabled: prompteurState.webcamEnabled 
+  });
+});
+
+// POST - Toggle webcam (plus pratique pour Companion)
+app.post('/api/webcam/toggle', (req, res) => {
+  prompteurState.webcamEnabled = !prompteurState.webcamEnabled;
+  broadcast({ type: 'webcam-update', state: prompteurState });
+  
+  console.log('✅ Webcam toggled:', prompteurState.webcamEnabled);
+  
+  res.json({ 
+    success: true, 
+    webcamEnabled: prompteurState.webcamEnabled 
+  });
+});
+
+// POST - Régler l'opacité de la webcam
+app.post('/api/webcam/opacity', (req, res) => {
+  const opacity = parseFloat(req.body.opacity);
+  
+  if (isNaN(opacity) || opacity < 0 || opacity > 1) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'L\'opacité doit être entre 0 et 1' 
+    });
+  }
+  
+  prompteurState.webcamOpacity = opacity;
+  broadcast({ type: 'webcam-opacity-update', state: prompteurState });
+  
+  res.json({ 
+    success: true, 
+    opacity: prompteurState.webcamOpacity 
+  });
+});
+
+// POST - Régler le flou de la webcam
+app.post('/api/webcam/blur', (req, res) => {
+  const blur = parseInt(req.body.blur);
+  
+  if (isNaN(blur) || blur < 0) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Le flou doit être un nombre positif' 
+    });
+  }
+  
+  prompteurState.webcamBlur = blur;
+  broadcast({ type: 'webcam-blur-update', state: prompteurState });
+  
+  res.json({ 
+    success: true, 
+    blur: prompteurState.webcamBlur 
+  });
+});
+
+// ========== DÉMARRAGE SERVEUR ==========
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {

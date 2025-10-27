@@ -7,78 +7,78 @@ class Prompteur {
             position: 0,
             isPlaying: false,
             isMirrored: false,
-            isInverted: false
+            isInverted: false,
+            webcamEnabled: false // 📹 Ajout
         };
         this.animationFrame = null;
         this.lastUpdateTime = 0;
         this.wrapper = document.getElementById('prompteur-wrapper');
         this.container = document.getElementById('prompteur-container');
         this.content = document.getElementById('prompteur-content');
-        
+        this.webcamVideo = document.getElementById('webcam'); // 📹 Ajout
+        this.webcamStream = null; // 📹 Ajout
+
         this.init();
     }
 
-    // Ajoute cette section dans la méthode init() de la classe Prompteur
+    init() {
+        this.setupWebSocket();
+        this.setupKeyboardControls();
+        this.setupFullscreenListener();
+    }
 
-init() {
-    this.setupWebSocket();
-    this.setupKeyboardControls();
-    this.setupFullscreenListener();
-}
+    // ========== FULLSCREEN ==========
 
-// Ajoute cette nouvelle méthode
-setupFullscreenListener() {
-    // Écouter les messages de la fenêtre parent
-    window.addEventListener('message', (event) => {
-        if (event.data.action === 'requestFullscreen') {
+    setupFullscreenListener() {
+        window.addEventListener('message', (event) => {
+            if (event.data.action === 'requestFullscreen') {
+                this.enterFullscreen();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'F11' || (e.key === 'f' && e.ctrlKey)) {
+                e.preventDefault();
+                this.toggleFullscreen();
+            }
+            if (e.key === 'Escape' && document.fullscreenElement) {
+                this.exitFullscreen();
+            }
+        });
+    }
+
+    enterFullscreen() {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => {
+                console.error('Erreur plein écran:', err);
+            });
+        } else if (elem.webkitRequestFullscreen) {
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) {
+            elem.msRequestFullscreen();
+        }
+    }
+
+    exitFullscreen() {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+            document.msExitFullscreen();
+        }
+    }
+
+    toggleFullscreen() {
+        if (!document.fullscreenElement) {
             this.enterFullscreen();
-        }
-    });
-
-    // Raccourci F11 ou F pour plein écran
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'F11' || (e.key === 'f' && e.ctrlKey)) {
-            e.preventDefault();
-            this.toggleFullscreen();
-        }
-        if (e.key === 'Escape' && document.fullscreenElement) {
+        } else {
             this.exitFullscreen();
         }
-    });
-}
-
-enterFullscreen() {
-    const elem = document.documentElement;
-    
-    if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => {
-            console.error('Erreur plein écran:', err);
-        });
-    } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-    } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
     }
-}
 
-exitFullscreen() {
-    if (document.exitFullscreen) {
-        document.exitFullscreen();
-    } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-    }
-}
-
-toggleFullscreen() {
-    if (!document.fullscreenElement) {
-        this.enterFullscreen();
-    } else {
-        this.exitFullscreen();
-    }
-}
-
+    // ========== WEBSOCKET ==========
 
     setupWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -140,8 +140,81 @@ toggleFullscreen() {
                 console.log('🔄 Mode inversé:', this.state.isInverted);
                 document.body.classList.toggle('inverted', this.state.isInverted);
             }
+
+            // 📹 Webcam
+            if (prevState.webcamEnabled !== this.state.webcamEnabled) {
+                console.log('📹 Webcam:', this.state.webcamEnabled);
+                this.toggleWebcam(this.state.webcamEnabled);
+            }
         }
     }
+
+    // ========== WEBCAM 📹 ==========
+
+    async toggleWebcam(enabled) {
+        if (enabled) {
+            await this.startWebcam();
+        } else {
+            this.stopWebcam();
+        }
+    }
+
+    async startWebcam() {
+        try {
+            console.log('📹 Démarrage webcam...');
+            
+            // Demander l'accès à la webcam
+            this.webcamStream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            });
+
+            // Attacher le stream à la vidéo
+            this.webcamVideo.srcObject = this.webcamStream;
+            
+            // Attendre que la vidéo soit prête
+            await this.webcamVideo.play();
+            
+            // Afficher avec transition
+            this.webcamVideo.classList.add('active');
+            
+            console.log('✅ Webcam activée');
+        } catch (error) {
+            console.error('❌ Erreur webcam:', error);
+            
+            // Afficher un message à l'utilisateur
+            if (error.name === 'NotAllowedError') {
+                alert('⚠️ Permission webcam refusée.\n\nAutorise l\'accès dans les paramètres de ton navigateur.');
+            } else if (error.name === 'NotFoundError') {
+                alert('⚠️ Aucune webcam trouvée.');
+            } else {
+                alert('⚠️ Erreur lors de l\'activation de la webcam.');
+            }
+        }
+    }
+
+    stopWebcam() {
+        console.log('📹 Arrêt webcam...');
+        
+        // Masquer avec transition
+        this.webcamVideo.classList.remove('active');
+        
+        // Arrêter le stream
+        if (this.webcamStream) {
+            this.webcamStream.getTracks().forEach(track => track.stop());
+            this.webcamStream = null;
+        }
+        
+        // Vider la source
+        this.webcamVideo.srcObject = null;
+        
+        console.log('✅ Webcam désactivée');
+    }
+
+    // ========== CONTENT ==========
 
     updateContent() {
         const html = MarkdownParser.parse(this.state.text);
@@ -244,6 +317,13 @@ toggleFullscreen() {
                     this.state.isInverted = !this.state.isInverted;
                     document.body.classList.toggle('inverted', this.state.isInverted);
                     console.log('🔄 Inversion togglée:', this.state.isInverted);
+                    break;
+                case 'w':
+                case 'W':
+                    e.preventDefault();
+                    this.state.webcamEnabled = !this.state.webcamEnabled;
+                    this.toggleWebcam(this.state.webcamEnabled);
+                    console.log('📹 Webcam togglée:', this.state.webcamEnabled);
                     break;
             }
         });

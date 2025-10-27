@@ -344,6 +344,15 @@ header h1 {
     color: #721c24;
 }
 
+.btn-secondary {
+    background: #607d8b;
+}
+
+.btn-secondary.active {
+    background: #4caf50;
+}
+
+
 
 /* Responsive */
 @media (max-width: 1024px) {

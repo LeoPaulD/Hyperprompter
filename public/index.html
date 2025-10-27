@@ -76,6 +76,13 @@
                         <input type="checkbox" id="invertToggle">
                         <span>🔁 Inverser l'écran</span>
                     </label>
+                    <!-- Ajoute ce bouton après les boutons Mirror/Invert -->
+                    <div class="control-group">
+                        <button id="toggleWebcamBtn" class="btn btn-secondary">
+                            📹 Webcam OFF
+                        </button>
+                    </div>
+
                 </div>
 
                 <!-- Statut -->
@@ -96,5 +103,55 @@
 
     <script src="js/markdown-parser.js"></script>
     <script src="js/admin.js"></script>
+    <script>
+        // État webcam
+let webcamEnabled = false;
+
+// Bouton toggle webcam
+document.getElementById('toggleWebcamBtn').addEventListener('click', async () => {
+    webcamEnabled = !webcamEnabled;
+    
+    try {
+        const response = await fetch('/api/webcam', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: webcamEnabled })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            updateWebcamButton(webcamEnabled);
+        }
+    } catch (error) {
+        console.error('Erreur webcam:', error);
+    }
+});
+
+// Mettre à jour le bouton webcam
+function updateWebcamButton(enabled) {
+    const btn = document.getElementById('toggleWebcamBtn');
+    btn.textContent = enabled ? '📹 Webcam ON' : '📹 Webcam OFF';
+    btn.classList.toggle('active', enabled);
+}
+
+// Dans la fonction WebSocket 'update', ajoute :
+socket.on('update', (data) => {
+    // ... autres handlers ...
+    
+    if (data.type === 'webcam-update') {
+        webcamEnabled = data.state.webcamEnabled;
+        updateWebcamButton(webcamEnabled);
+    }
+});
+
+// Dans le chargement initial 'state', ajoute :
+socket.on('state', (state) => {
+    // ... autres états ...
+    webcamEnabled = state.webcamEnabled || false;
+    updateWebcamButton(webcamEnabled);
+});
+
+    </script>
 </body>
 </html>

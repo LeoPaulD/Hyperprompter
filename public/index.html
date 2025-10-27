@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompteur - Interface d'Administration</title>
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Prompteur - Administration</h1>
+            <div class="header-actions">
+                <button id="openPrompterBtn" class="btn btn-primary">
+                    📺 Ouvrir le prompteur
+                </button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Zone d'édition -->
+            <section class="editor-section">
+                <div class="section-header">
+                    <h2>Éditeur de texte</h2>
+                    <div class="file-actions">
+                        <button id="importBtn" class="btn btn-secondary">
+                            📥 Importer .md
+                        </button>
+                        <button id="exportBtn" class="btn btn-secondary">
+                            📤 Exporter .md
+                        </button>
+                        <input type="file" id="fileInput" accept=".md,.txt" style="display: none;">
+                    </div>
+                </div>
+                <textarea id="textEditor" placeholder="Écrivez votre texte en Markdown..."></textarea>
+                <button id="updateTextBtn" class="btn btn-success">
+                    ✓ Mettre à jour le prompteur
+                </button>
+            </section>
+
+            <!-- Panneau de contrôle -->
+            <aside class="control-panel">
+                <h2>Contrôles</h2>
+                
+                <!-- Contrôles de lecture -->
+                <div class="control-group">
+                    <h3>Lecture</h3>
+                    <div class="control-buttons">
+                        <button id="playBtn" class="btn btn-play">▶️ Play</button>
+                        <button id="pauseBtn" class="btn btn-pause">⏸️ Pause</button>
+                        <button id="resetBtn" class="btn btn-reset">⏮️ Reset</button>
+                    </div>
+                    <div class="control-buttons">
+                        <button id="backwardBtn" class="btn btn-nav">⬆️ Reculer</button>
+                        <button id="forwardBtn" class="btn btn-nav">⬇️ Avancer</button>
+                    </div>
+                </div>
+
+                <!-- Vitesse -->
+                <div class="control-group">
+                    <h3>Vitesse de défilement</h3>
+                    <div class="speed-control">
+                        <input type="range" id="speedSlider" min="0.5" max="10" step="0.5" value="2">
+                        <span id="speedValue">2x</span>
+                    </div>
+                </div>
+
+                <!-- Options d'affichage -->
+                <div class="control-group">
+                    <h3>Affichage</h3>
+                    <label class="switch-label">
+                        <input type="checkbox" id="mirrorToggle">
+                        <span>🔄 Mode miroir</span>
+                    </label>
+                    <label class="switch-label">
+                        <input type="checkbox" id="invertToggle">
+                        <span>🔁 Inverser l'écran</span>
+                    </label>
+                </div>
+
+                <!-- Statut -->
+                <div class="control-group status">
+                    <h3>Statut</h3>
+                    <div class="status-indicator">
+                        <span id="connectionStatus" class="status-dot disconnected"></span>
+                        <span id="connectionText">Déconnecté</span>
+                    </div>
+                    <div class="status-info">
+                        <p>Position: <span id="positionInfo">0</span>px</p>
+                        <p>État: <span id="playingInfo">Pause</span></p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <script src="js/markdown-parser.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

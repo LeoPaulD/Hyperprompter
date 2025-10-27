@@ -1,0 +1,131 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #000000;
+    color: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+#prompteur-wrapper {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+#prompteur-container {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 40vh;
+    transform-origin: center center;
+}
+
+#prompteur-content {
+    width: 100%;
+    padding: 0 10%;
+    font-size: 3.5rem;
+    line-height: 1.8;
+    font-weight: 500;
+    text-align: center;
+    will-change: transform;
+}
+
+/* Styles Markdown */
+#prompteur-content h1 {
+    font-size: 4.5rem;
+    margin: 40px 0;
+    font-weight: 700;
+}
+
+#prompteur-content h2 {
+    font-size: 4rem;
+    margin: 35px 0;
+    font-weight: 600;
+}
+
+#prompteur-content h3 {
+    font-size: 3.5rem;
+    margin: 30px 0;
+    font-weight: 600;
+}
+
+#prompteur-content p {
+    margin: 25px 0;
+}
+
+#prompteur-content strong {
+    font-weight: 700;
+    color: #fbbf24;
+}
+
+#prompteur-content em {
+    font-style: italic;
+    color: #93c5fd;
+}
+
+#prompteur-content ul, #prompteur-content ol {
+    text-align: left;
+    margin: 25px auto;
+    max-width: 80%;
+}
+
+#prompteur-content li {
+    margin: 15px 0;
+}
+
+#prompteur-content hr {
+    border: none;
+    border-top: 3px solid #ffffff;
+    margin: 50px 0;
+    opacity: 0.3;
+}
+
+/* MODE MIROIR - Application sur le wrapper */
+body.mirrored #prompteur-wrapper {
+    transform: scaleX(-1);
+    -webkit-transform: scaleX(-1);
+}
+
+/* MODE INVERSÉ seul - Rotation 180° */
+body.inverted:not(.mirrored) #prompteur-wrapper {
+    transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+}
+
+/* MODE MIROIR + INVERSÉ combinés */
+body.mirrored.inverted #prompteur-wrapper {
+    transform: scaleX(-1) rotate(180deg);
+    -webkit-transform: scaleX(-1) rotate(180deg);
+}
+
+/* Optimisations de performance */
+#prompteur-wrapper,
+#prompteur-container,
+#prompteur-content {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+}
+
+#prompteur-content * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Curseur invisible */
+body {
+    cursor: none;
+}

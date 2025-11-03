@@ -11,6 +11,8 @@ const wss = new WebSocket.Server({ server });
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
+// 🆕 Servir node_modules depuis le dossier server
+app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
 
 // État global du prompteur
 let prompteurState = {
@@ -20,9 +22,13 @@ let prompteurState = {
   isPlaying: false,
   isMirrored: false,
   isInverted: false,
-  webcamEnabled: false,      // 📹 Ajout
-  webcamOpacity: 0.3,        // 📹 Ajout (30% visible)
-  webcamBlur: 3              // 📹 Ajout (3px de flou)
+  webcamEnabled: false,
+  webcamOpacity: 0.3,
+  webcamBlur: 3,
+  // 🆕 Ajouts pour Reveal.js
+  presentationMode: false,  // Mode présentation activé/désactivé
+  currentSlide: 0,          // Index du slide actuel
+  totalSlides: 0            // Nombre total de slides
 };
 
 // Diffusion aux clients WebSocket
@@ -78,8 +84,15 @@ app.get('/api/state', (req, res) => {
 // POST - Mettre à jour le texte
 app.post('/api/text', (req, res) => {
   prompteurState.text = req.body.text;
+  
+  // 🆕 Calculer le nombre de slides (séparés par ---)
+  const slideCount = (prompteurState.text.match(/---/g) || []).length + 1;
+  prompteurState.totalSlides = slideCount;
+  
+  console.log(`📝 Texte mis à jour (${slideCount} slides détectés)`);
+  
   broadcast({ type: 'text-update', state: prompteurState });
-  res.json({ success: true });
+  res.json({ success: true, totalSlides: slideCount });
 });
 
 // ========== API REST - CONTRÔLES ==========
@@ -152,19 +165,19 @@ app.post('/api/invert', (req, res) => {
 // POST - Activer/désactiver la webcam
 app.post('/api/webcam', (req, res) => {
   console.log('📹 Requête webcam reçue:', req.body);
-  
+
   if (typeof req.body.enabled !== 'boolean') {
     return res.status(400).json({ 
       success: false, 
       error: 'Le paramètre "enabled" doit être true ou false' 
     });
   }
-  
+
   prompteurState.webcamEnabled = req.body.enabled;
   broadcast({ type: 'webcam-update', state: prompteurState });
-  
+
   console.log('✅ Webcam changée:', prompteurState.webcamEnabled);
-  
+
   res.json({ 
     success: true,
     webcamEnabled: prompteurState.webcamEnabled 
@@ -175,9 +188,9 @@ app.post('/api/webcam', (req, res) => {
 app.post('/api/webcam/toggle', (req, res) => {
   prompteurState.webcamEnabled = !prompteurState.webcamEnabled;
   broadcast({ type: 'webcam-update', state: prompteurState });
-  
+
   console.log('✅ Webcam toggled:', prompteurState.webcamEnabled);
-  
+
   res.json({ 
     success: true, 
     webcamEnabled: prompteurState.webcamEnabled 
@@ -187,17 +200,17 @@ app.post('/api/webcam/toggle', (req, res) => {
 // POST - Régler l'opacité de la webcam
 app.post('/api/webcam/opacity', (req, res) => {
   const opacity = parseFloat(req.body.opacity);
-  
+
   if (isNaN(opacity) || opacity < 0 || opacity > 1) {
     return res.status(400).json({ 
       success: false, 
       error: 'L\'opacité doit être entre 0 et 1' 
     });
   }
-  
+
   prompteurState.webcamOpacity = opacity;
   broadcast({ type: 'webcam-opacity-update', state: prompteurState });
-  
+
   res.json({ 
     success: true, 
     opacity: prompteurState.webcamOpacity 
@@ -207,20 +220,150 @@ app.post('/api/webcam/opacity', (req, res) => {
 // POST - Régler le flou de la webcam
 app.post('/api/webcam/blur', (req, res) => {
   const blur = parseInt(req.body.blur);
-  
+
   if (isNaN(blur) || blur < 0) {
     return res.status(400).json({ 
       success: false, 
       error: 'Le flou doit être un nombre positif' 
     });
   }
-  
+
   prompteurState.webcamBlur = blur;
   broadcast({ type: 'webcam-blur-update', state: prompteurState });
-  
+
   res.json({ 
     success: true, 
     blur: prompteurState.webcamBlur 
+  });
+});
+
+// ========== API REST - MODE PRÉSENTATION 🎯 ==========
+
+// POST - Toggle mode présentation
+app.post('/api/presentation/toggle', (req, res) => {
+  prompteurState.presentationMode = !prompteurState.presentationMode;
+  
+  if (prompteurState.presentationMode) {
+    // Passer en mode présentation : pause le défilement auto
+    prompteurState.isPlaying = false;
+    prompteurState.currentSlide = 0;
+    console.log('🎨 Mode PRÉSENTATION activé');
+  } else {
+    // Retour en mode prompteur
+    console.log('📜 Mode PROMPTEUR activé');
+  }
+  
+  broadcast({ 
+    type: 'presentation-toggle', 
+    state: prompteurState 
+  });
+  
+  res.json({ 
+    success: true, 
+    presentationMode: prompteurState.presentationMode,
+    currentSlide: prompteurState.currentSlide,
+    totalSlides: prompteurState.totalSlides
+  });
+});
+
+// POST - Slide suivant
+app.post('/api/presentation/next', (req, res) => {
+  if (!prompteurState.presentationMode) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Mode présentation non activé' 
+    });
+  }
+
+  // Ne pas dépasser le dernier slide
+  if (prompteurState.currentSlide < prompteurState.totalSlides - 1) {
+    prompteurState.currentSlide++;
+    console.log(`➡️ Slide ${prompteurState.currentSlide + 1} / ${prompteurState.totalSlides}`);
+  } else {
+    console.log('⚠️ Déjà au dernier slide');
+  }
+  
+  broadcast({ 
+    type: 'slide-change', 
+    direction: 'next',
+    state: prompteurState
+  });
+  
+  res.json({ 
+    success: true, 
+    currentSlide: prompteurState.currentSlide,
+    totalSlides: prompteurState.totalSlides
+  });
+});
+
+// POST - Slide précédent
+app.post('/api/presentation/prev', (req, res) => {
+  if (!prompteurState.presentationMode) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Mode présentation non activé' 
+    });
+  }
+
+  if (prompteurState.currentSlide > 0) {
+    prompteurState.currentSlide--;
+    console.log(`⬅️ Slide ${prompteurState.currentSlide + 1} / ${prompteurState.totalSlides}`);
+  } else {
+    console.log('⚠️ Déjà au premier slide');
+  }
+  
+  broadcast({ 
+    type: 'slide-change', 
+    direction: 'prev',
+    state: prompteurState
+  });
+  
+  res.json({ 
+    success: true, 
+    currentSlide: prompteurState.currentSlide,
+    totalSlides: prompteurState.totalSlides
+  });
+});
+
+// POST - Aller à un slide spécifique
+app.post('/api/presentation/goto', (req, res) => {
+  if (!prompteurState.presentationMode) {
+    return res.status(400).json({ 
+      success: false, 
+      error: 'Mode présentation non activé' 
+    });
+  }
+
+  const slideIndex = parseInt(req.body.slideIndex);
+
+  if (isNaN(slideIndex) || slideIndex < 0 || slideIndex >= prompteurState.totalSlides) {
+    return res.status(400).json({ 
+      success: false, 
+      error: `Le numéro de slide doit être entre 0 et ${prompteurState.totalSlides - 1}` 
+    });
+  }
+
+  prompteurState.currentSlide = slideIndex;
+  console.log(`🎯 Aller au slide ${slideIndex + 1}`);
+  
+  broadcast({ 
+    type: 'slide-change', 
+    direction: 'goto',
+    state: prompteurState
+  });
+  
+  res.json({ 
+    success: true, 
+    currentSlide: prompteurState.currentSlide 
+  });
+});
+
+// GET - État du mode présentation
+app.get('/api/presentation/state', (req, res) => {
+  res.json({
+    presentationMode: prompteurState.presentationMode,
+    currentSlide: prompteurState.currentSlide,
+    totalSlides: prompteurState.totalSlides
   });
 });
 
@@ -231,4 +374,5 @@ server.listen(PORT, () => {
   console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);
   console.log(`📝 Interface admin: http://localhost:${PORT}/`);
   console.log(`📺 Prompteur: http://localhost:${PORT}/prompteur.html`);
+  console.log(`🎨 Mode présentation: ${prompteurState.presentationMode ? 'ON' : 'OFF'}`);
 });

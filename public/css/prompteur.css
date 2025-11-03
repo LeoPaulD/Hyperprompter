@@ -92,20 +92,23 @@ body {
     opacity: 0.3;
 }
 
-/* MODE MIROIR - Application sur le wrapper */
-body.mirrored #prompteur-wrapper {
+/* MODE MIROIR - Application sur les wrappers */
+body.mirrored #prompteur-wrapper,
+body.mirrored #youtube-comments-wrapper {
     transform: scaleX(-1);
     -webkit-transform: scaleX(-1);
 }
 
 /* MODE INVERSÉ seul - Rotation 180° */
-body.inverted:not(.mirrored) #prompteur-wrapper {
+body.inverted:not(.mirrored) #prompteur-wrapper,
+body.inverted:not(.mirrored) #youtube-comments-wrapper {
     transform: rotate(180deg);
     -webkit-transform: rotate(180deg);
 }
 
 /* MODE MIROIR + INVERSÉ combinés */
-body.mirrored.inverted #prompteur-wrapper {
+body.mirrored.inverted #prompteur-wrapper,
+body.mirrored.inverted #youtube-comments-wrapper {
     transform: scaleX(-1) rotate(180deg);
     -webkit-transform: scaleX(-1) rotate(180deg);
 }

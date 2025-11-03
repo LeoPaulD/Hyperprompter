@@ -304,10 +304,7 @@ class Prompteur {
             // 2️⃣ Arrêter le scroll si actif
             this.stopScrolling();
             
-            // 3️⃣ Cacher la webcam
-            if (this.webcamVideo) {
-                this.webcamVideo.style.display = 'none';
-            }
+           
             
             // 4️⃣ Afficher le container de présentation
             this.presentationContainer.style.display = 'block';
@@ -316,6 +313,7 @@ class Prompteur {
             if (!this.revealInstance) {
                 this.initReveal();
             } else {
+                this.initReveal();
                 this.generateRevealSlides();
                 this.revealInstance.sync();
             }
@@ -341,6 +339,9 @@ class Prompteur {
             // 4️⃣ Mettre à jour le contenu
             this.updateContent();
             
+
+            document.body.style.setProperty('background', '#000', 'important');
+            document.body.style.setProperty('color', '#FFF', 'important');
             // 5️⃣ Remettre la position à zéro
             this.state.position = 0;
             this.updatePosition();

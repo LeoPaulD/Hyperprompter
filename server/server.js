@@ -117,7 +117,16 @@ app.post('/api/control/:action', (req, res) => {
 
 // POST - Régler la vitesse
 app.post('/api/speed', (req, res) => {
-  prompteurState.speed = parseFloat(req.body.speed);
+  const speed = parseFloat(req.body.speed);
+
+  if (isNaN(speed) || speed < 0.5 || speed > 10) {
+    return res.status(400).json({
+      success: false,
+      error: 'La vitesse doit être un nombre entre 0.5 et 10'
+    });
+  }
+
+  prompteurState.speed = speed;
   broadcast({ type: 'speed-update', state: prompteurState });
   res.json({ success: true });
 });

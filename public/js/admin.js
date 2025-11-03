@@ -102,6 +102,10 @@ class PrompterAdmin {
             window.open('/prompteur.html', 'prompteur', 'width=1920,height=1080');
         });
 
+        document.getElementById('modeToggleBtn').addEventListener('click', () => {
+            this.sendMessage('mode-toggle');
+        });
+
         // Import/Export
         document.getElementById('importBtn').addEventListener('click', () => {
             document.getElementById('fileInput').click();
@@ -159,6 +163,63 @@ class PrompterAdmin {
         document.getElementById('textEditor').addEventListener('input', () => {
             this.saveText();
         });
+
+        // YouTube
+        document.getElementById('googleSignInBtn').addEventListener('click', () => {
+            window.location.href = '/api/auth/google';
+        });
+
+        document.getElementById('googleSignOutBtn').addEventListener('click', () => {
+            fetch('/api/auth/signout', { method: 'POST' })
+                .then(() => this.checkAuthStatus());
+        });
+
+        document.getElementById('youtubeStartBtn').addEventListener('click', () => {
+            const videoUrl = document.getElementById('youtubeUrl').value;
+            fetch('/api/youtube/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ videoUrl })
+            });
+        });
+
+        document.getElementById('youtubeStopBtn').addEventListener('click', () => {
+            fetch('/api/youtube/stop', { method: 'POST' });
+        });
+
+        document.getElementById('youtubeSpeedSlider').addEventListener('input', (e) => {
+            const speed = parseFloat(e.target.value);
+            document.getElementById('youtubeSpeedValue').textContent = `${speed}x`;
+            this.sendMessage('youtube-speed-update', { state: { youtubeSpeed: speed } });
+        });
+
+        document.getElementById('youtubeFontSizeSlider').addEventListener('input', (e) => {
+            const fontSize = parseInt(e.target.value);
+            document.getElementById('youtubeFontSizeValue').textContent = `${fontSize}px`;
+            this.sendMessage('youtube-font-size-update', { state: { youtubeFontSize: fontSize } });
+        });
+
+        this.checkAuthStatus();
+    }
+
+    checkAuthStatus() {
+        fetch('/api/auth/status')
+            .then(res => res.json())
+            .then(data => {
+                const signInBtn = document.getElementById('googleSignInBtn');
+                const signOutContainer = document.getElementById('youtube-status');
+                const controlsContainer = document.getElementById('youtube-controls-container');
+
+                if (data.connected) {
+                    signInBtn.style.display = 'none';
+                    signOutContainer.style.display = 'block';
+                    controlsContainer.style.display = 'block';
+                } else {
+                    signInBtn.style.display = 'block';
+                    signOutContainer.style.display = 'none';
+                    controlsContainer.style.display = 'none';
+                }
+            });
     }
 
     sendMessage(type, data = {}) {

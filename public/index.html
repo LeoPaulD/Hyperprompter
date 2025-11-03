@@ -14,6 +14,9 @@
                 <button id="openPrompterBtn" class="btn btn-primary">
                     📺 Ouvrir le prompteur
                 </button>
+                <button id="modeToggleBtn" class="btn btn-secondary">
+                    Switch to Comment Reader
+                </button>
             </div>
         </header>
 
@@ -83,6 +86,33 @@
                         </button>
                     </div>
 
+                </div>
+
+                <!-- YouTube -->
+                <div class="control-group">
+                    <h3>YouTube</h3>
+                    <div id="youtube-auth-container">
+                        <button id="googleSignInBtn" class="btn btn-primary">Sign in with Google</button>
+                        <div id="youtube-status" style="display: none;">
+                            <p>Connected</p>
+                            <button id="googleSignOutBtn" class="btn btn-secondary">Sign out</button>
+                        </div>
+                    </div>
+                    <div id="youtube-controls-container" style="display: none;">
+                      <input type="text" id="youtubeUrl" placeholder="YouTube Video URL">
+                      <button id="youtubeStartBtn" class="btn btn-primary">Start</button>
+                      <button id="youtubeStopBtn" class="btn btn-secondary">Stop</button>
+                    </div>
+                    <div>
+                        <label for="youtubeSpeedSlider">Speed:</label>
+                        <input type="range" id="youtubeSpeedSlider" min="0.5" max="10" step="0.5" value="2">
+                        <span id="youtubeSpeedValue">2x</span>
+                    </div>
+                    <div>
+                        <label for="youtubeFontSizeSlider">Font Size:</label>
+                        <input type="range" id="youtubeFontSizeSlider" min="14" max="48" step="1" value="22">
+                        <span id="youtubeFontSizeValue">22px</span>
+                    </div>
                 </div>
 
                 <!-- Statut -->

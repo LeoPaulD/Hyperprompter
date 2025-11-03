@@ -3,8 +3,23 @@ const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
 const cors = require('cors');
+const { google } = require('googleapis');
+const { URL } = require('url');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+
+// IMPORTANT: Replace with your actual credentials
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'YOUR_CLIENT_ID';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
+const REDIRECT_URI = 'http://localhost:3000/api/auth/google/callback';
 
 const app = express();
+app.use(cookieParser());
+app.use(session({
+  secret: 'your_secret_key', // Replace with a real secret key
+  resave: false,
+  saveUninitialized: true,
+}));
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
@@ -22,7 +37,11 @@ let prompteurState = {
   isInverted: false,
   webcamEnabled: false,      // 📹 Ajout
   webcamOpacity: 0.3,        // 📹 Ajout (30% visible)
-  webcamBlur: 3              // 📹 Ajout (3px de flou)
+  webcamBlur: 3,              // 📹 Ajout (3px de flou)
+  mode: 'prompter',
+  youtubeUrl: '',
+  youtubeSpeed: 2,
+  youtubeFontSize: 22
 };
 
 // Diffusion aux clients WebSocket
@@ -59,6 +78,11 @@ wss.on('connection', (ws) => {
       type: data.type,
       state: prompteurState
     });
+
+    if (data.type === 'mode-toggle') {
+      prompteurState.mode = prompteurState.mode === 'prompter' ? 'youtube' : 'prompter';
+      broadcast({ type: 'mode-toggle', state: prompteurState });
+    }
   });
 
   ws.on('close', () => {
@@ -222,6 +246,166 @@ app.post('/api/webcam/blur', (req, res) => {
     success: true, 
     blur: prompteurState.webcamBlur 
   });
+});
+
+// ========== API REST - GOOGLE AUTH ==========
+
+// Step 1: Redirect to Google's OAuth 2.0 server
+app.get('/api/auth/google', (req, res) => {
+  const oauth2Client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    REDIRECT_URI
+  );
+
+  const scopes = [
+    'https://www.googleapis.com/auth/youtube.readonly'
+  ];
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+    prompt: 'consent'
+  });
+  res.redirect(url);
+});
+
+// Step 2: Handle the OAuth 2.0 server response
+app.get('/api/auth/google/callback', async (req, res) => {
+  const { code } = req.query;
+  const oauth2Client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    REDIRECT_URI
+  );
+  try {
+    const { tokens } = await oauth2Client.getToken(code);
+    req.session.tokens = tokens;
+    res.redirect('/');
+  } catch (error) {
+    console.error('Error authenticating with Google:', error);
+    res.status(500).send('Authentication failed');
+  }
+});
+
+// Check authentication status
+app.get('/api/auth/status', (req, res) => {
+  if (req.session.tokens) {
+    res.json({ connected: true });
+  } else {
+    res.json({ connected: false });
+  }
+});
+
+// Sign out
+app.post('/api/auth/signout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
+});
+
+function getAuthenticatedClient(req) {
+  if (!req.session.tokens) return null;
+  const oauth2Client = new google.auth.OAuth2(
+    GOOGLE_CLIENT_ID,
+    GOOGLE_CLIENT_SECRET,
+    REDIRECT_URI
+  );
+  oauth2Client.setCredentials(req.session.tokens);
+  return oauth2Client;
+}
+
+// ========== YOUTUBE API ==========
+
+let liveChatId = null;
+let nextPageToken = null;
+let pollingInterval = null;
+
+const youtube = google.youtube('v3');
+
+async function getLiveChatId(auth, videoId) {
+  try {
+    const response = await youtube.videos.list({
+      auth: auth,
+      part: 'liveStreamingDetails',
+      id: videoId,
+    });
+
+    const video = response.data.items[0];
+    if (video && video.liveStreamingDetails) {
+      return video.liveStreamingDetails.activeLiveChatId;
+    }
+  } catch (error) {
+    console.error('Error fetching live chat ID:', error);
+  }
+  return null;
+}
+
+async function fetchChatMessages(auth) {
+  if (!liveChatId) return;
+
+  try {
+    const response = await youtube.liveChatMessages.list({
+      auth: auth,
+      liveChatId: liveChatId,
+      part: 'snippet,authorDetails',
+      pageToken: nextPageToken,
+    });
+
+    const { items, nextPageToken: newNextPageToken, pollingIntervalMillis } = response.data;
+    items.forEach(item => {
+      broadcast({
+        type: 'youtube-message',
+        message: {
+          author: item.authorDetails.displayName,
+          message: item.snippet.displayMessage,
+        },
+      });
+    });
+
+    nextPageToken = newNextPageToken;
+
+    // Adjust polling interval
+    if (pollingInterval) clearInterval(pollingInterval);
+    pollingInterval = setInterval(fetchChatMessages, pollingIntervalMillis);
+
+  } catch (error) {
+    console.error('Error fetching chat messages:', error);
+  }
+}
+
+app.post('/api/youtube/start', async (req, res) => {
+  const { videoUrl } = req.body;
+  const auth = getAuthenticatedClient(req);
+  if (!auth) {
+    return res.status(401).json({ error: 'Not authenticated' });
+  }
+
+  prompteurState.youtubeUrl = videoUrl;
+  const videoId = new URL(videoUrl).searchParams.get('v');
+  if (!videoId) {
+    return res.status(400).json({ error: 'Invalid YouTube URL' });
+  }
+
+  liveChatId = await getLiveChatId(auth, videoId);
+  if (liveChatId) {
+    nextPageToken = null;
+    if (pollingInterval) clearInterval(pollingInterval);
+    const fetchAndPoll = () => fetchChatMessages(auth);
+    fetchAndPoll();
+    res.json({ success: true });
+  } else {
+    res.status(404).json({ error: 'Live chat not found' });
+  }
+});
+
+app.post('/api/youtube/stop', (req, res) => {
+  if (pollingInterval) {
+    clearInterval(pollingInterval);
+    pollingInterval = null;
+  }
+  liveChatId = null;
+  nextPageToken = null;
+  res.json({ success: true });
 });
 
 // ========== DÉMARRAGE SERVEUR ==========

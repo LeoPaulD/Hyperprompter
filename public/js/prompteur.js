@@ -8,10 +8,14 @@ class Prompteur {
             isPlaying: false,
             isMirrored: false,
             isInverted: false,
-            webcamEnabled: false // 📹 Ajout
+            webcamEnabled: false, // 📹 Ajout
+            mode: 'prompter', // prompter or youtube
+            youtubeSpeed: 2,
+            youtubeFontSize: 22
         };
         this.animationFrame = null;
         this.lastUpdateTime = 0;
+        this.youtubeScrollInterval = null;
         this.wrapper = document.getElementById('prompteur-wrapper');
         this.container = document.getElementById('prompteur-container');
         this.content = document.getElementById('prompteur-content');
@@ -146,6 +150,80 @@ class Prompteur {
                 console.log('📹 Webcam:', this.state.webcamEnabled);
                 this.toggleWebcam(this.state.webcamEnabled);
             }
+        }
+
+        if (data.type === 'mode-toggle') {
+            this.toggleMode();
+        }
+
+        if (data.type === 'youtube-message') {
+            this.displayYouTubeMessage(data.message);
+        }
+
+        if (data.type === 'youtube-speed-update' || data.type === 'youtube-font-size-update') {
+            this.updateYouTubeStyles();
+        }
+    }
+
+    updateYouTubeStyles() {
+        const commentsContainer = document.getElementById('youtube-comments-container');
+        commentsContainer.style.fontSize = `${this.state.youtubeFontSize}px`;
+        // Speed will be handled by adjusting the scroll interval
+        this.stopYouTubeScrolling();
+        this.startYouTubeScrolling();
+    }
+
+    displayYouTubeMessage(message) {
+        const commentsContainer = document.getElementById('youtube-comments-content');
+        const isScrolledToBottom = commentsContainer.scrollHeight - commentsContainer.clientHeight <= commentsContainer.scrollTop + 1;
+
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('youtube-comment');
+        messageElement.innerHTML = `
+            <span class="author">${message.author}</span>:
+            <span class="message">${message.message}</span>
+        `;
+        commentsContainer.appendChild(messageElement);
+
+        if (isScrolledToBottom) {
+            this.scrollToBottom();
+        }
+    }
+
+    scrollToBottom() {
+        const commentsContainer = document.getElementById('youtube-comments-container');
+        commentsContainer.scrollTop = commentsContainer.scrollHeight;
+    }
+
+    toggleMode() {
+        this.state.mode = this.state.mode === 'prompter' ? 'youtube' : 'prompter';
+        const prompterWrapper = document.getElementById('prompteur-wrapper');
+        const youtubeWrapper = document.getElementById('youtube-comments-wrapper');
+
+        if (this.state.mode === 'prompter') {
+            prompterWrapper.style.display = 'block';
+            youtubeWrapper.style.display = 'none';
+            this.stopYouTubeScrolling();
+        } else {
+            prompterWrapper.style.display = 'none';
+            youtubeWrapper.style.display = 'block';
+            this.startYouTubeScrolling();
+        }
+    }
+
+    startYouTubeScrolling() {
+        if (this.youtubeScrollInterval) clearInterval(this.youtubeScrollInterval);
+        const scrollAmount = this.state.youtubeSpeed / 2;
+        this.youtubeScrollInterval = setInterval(() => {
+            const commentsContainer = document.getElementById('youtube-comments-container');
+            commentsContainer.scrollTop += scrollAmount;
+        }, 50);
+    }
+
+    stopYouTubeScrolling() {
+        if (this.youtubeScrollInterval) {
+            clearInterval(this.youtubeScrollInterval);
+            this.youtubeScrollInterval = null;
         }
     }
 

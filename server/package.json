@@ -4,13 +4,14 @@
     "description": "Prompteur web avec interface d'administration",
     "main": "server.js",
     "scripts": {
-      "start": "node server.js",
-      "dev": "nodemon server.js"
+        "start": "node server.js",
+        "dev": "nodemon server.js"
     },
     "dependencies": {
-      "express": "^4.18.2",
-      "ws": "^8.14.2",
-      "cors": "^2.8.5"
+        "cookie-parser": "^1.4.7",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "express-session": "^1.18.2",
+        "ws": "^8.14.2"
     }
-  }
-  
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Reveal.js</title>
+    
+    <!-- Reveal.js CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/black.css">
+    
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        .reveal {
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        .reveal h1 {
+            color: #42b983;
+        }
+        
+        .reveal h2 {
+            color: #64b5f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section>
+                <h1>🚀 Test Slide 1</h1>
+                <p>Si tu vois ce texte, Reveal.js fonctionne !</p>
+            </section>
+            
+            <section>
+                <h2>📊 Test Slide 2</h2>
+                <ul>
+                    <li>Point 1</li>
+                    <li>Point 2</li>
+                    <li>Point 3</li>
+                </ul>
+            </section>
+            
+            <section>
+                <h2>💻 Test Code</h2>
+                <pre><code class="javascript">
+function hello() {
+    console.log("Hello World!");
+}
+                </code></pre>
+            </section>
+            
+            <section data-markdown>
+                <textarea data-template>
+# 🎨 Test Markdown
+
+- Item 1
+- Item 2
+- Item 3
+                </textarea>
+            </section>
+        </div>
+    </div>
+
+    <!-- Reveal.js Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/plugin/markdown/markdown.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/plugin/highlight/highlight.js"></script>
+
+    <script>
+        console.log('🔧 Initialisation Reveal.js...');
+        
+        Reveal.initialize({
+            hash: true,
+            center: true,
+            controls: true,
+            progress: true,
+            slideNumber: 'c/t',
+            transition: 'slide',
+            
+            plugins: [ RevealMarkdown, RevealHighlight ]
+        }).then(() => {
+            console.log('✅ Reveal.js OK !');
+            console.log('📊 Nombre de slides:', Reveal.getTotalSlides());
+        }).catch((error) => {
+            console.error('❌ Erreur Reveal.js:', error);
+        });
+        
+        Reveal.on('slidechanged', (event) => {
+            console.log('📍 Slide:', event.indexh + 1, '/', Reveal.getTotalSlides());
+        });
+    </script>
+</body>
+</html>

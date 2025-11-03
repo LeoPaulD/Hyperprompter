@@ -41,7 +41,29 @@
             <!-- Panneau de contrôle -->
             <aside class="control-panel">
                 <h2>Contrôles</h2>
-                
+
+                <!-- 🆕 MODE PRÉSENTATION -->
+                <div class="control-group">
+                    <button id="presentationToggleBtn" class="btn btn-mode">
+                        📊 Mode Présentation
+                    </button>
+                    <div class="mode-indicator">
+                        Mode actuel: <strong id="currentModeText">Prompteur</strong>
+                    </div>
+                </div>
+
+                <!-- 🆕 NAVIGATION SLIDES (caché par défaut) -->
+                <div id="slideControls" class="control-group" style="display: none;">
+                    <h3>Navigation Slides</h3>
+                    <div class="control-buttons">
+                        <button id="slidePrevBtn" class="btn btn-nav">◀️ Précédent</button>
+                        <button id="slideNextBtn" class="btn btn-nav">▶️ Suivant</button>
+                    </div>
+                    <div class="slide-counter">
+                        Slide: <span id="currentSlide">0</span> / <span id="totalSlides">0</span>
+                    </div>
+                </div>
+
                 <!-- Contrôles de lecture -->
                 <div class="control-group">
                     <h3>Lecture</h3>
@@ -76,13 +98,11 @@
                         <input type="checkbox" id="invertToggle">
                         <span>🔁 Inverser l'écran</span>
                     </label>
-                    <!-- Ajoute ce bouton après les boutons Mirror/Invert -->
                     <div class="control-group">
                         <button id="toggleWebcamBtn" class="btn btn-secondary">
                             📹 Webcam OFF
                         </button>
                     </div>
-
                 </div>
 
                 <!-- Statut -->
@@ -104,54 +124,105 @@
     <script src="js/markdown-parser.js"></script>
     <script src="js/admin.js"></script>
     <script>
-        // État webcam
-let webcamEnabled = false;
+        // ========== WEBCAM ==========
+        let webcamEnabled = false;
 
-// Bouton toggle webcam
-document.getElementById('toggleWebcamBtn').addEventListener('click', async () => {
-    webcamEnabled = !webcamEnabled;
-    
-    try {
-        const response = await fetch('/api/webcam', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabled: webcamEnabled })
+        document.getElementById('toggleWebcamBtn').addEventListener('click', async () => {
+            webcamEnabled = !webcamEnabled;
+
+            try {
+                const response = await fetch('/api/webcam', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: webcamEnabled })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateWebcamButton(webcamEnabled);
+                }
+            } catch (error) {
+                console.error('Erreur webcam:', error);
+            }
         });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            updateWebcamButton(webcamEnabled);
+
+        function updateWebcamButton(enabled) {
+            const btn = document.getElementById('toggleWebcamBtn');
+            btn.textContent = enabled ? '📹 Webcam ON' : '📹 Webcam OFF';
+            btn.classList.toggle('active', enabled);
         }
-    } catch (error) {
-        console.error('Erreur webcam:', error);
-    }
-});
 
-// Mettre à jour le bouton webcam
-function updateWebcamButton(enabled) {
-    const btn = document.getElementById('toggleWebcamBtn');
-    btn.textContent = enabled ? '📹 Webcam ON' : '📹 Webcam OFF';
-    btn.classList.toggle('active', enabled);
-}
+        // ========== MODE PRÉSENTATION ==========
+        let presentationMode = false;
 
-// Dans la fonction WebSocket 'update', ajoute :
-socket.on('update', (data) => {
-    // ... autres handlers ...
-    
-    if (data.type === 'webcam-update') {
-        webcamEnabled = data.state.webcamEnabled;
-        updateWebcamButton(webcamEnabled);
-    }
-});
+        document.getElementById('presentationToggleBtn').addEventListener('click', async () => {
+            presentationMode = !presentationMode;
 
-// Dans le chargement initial 'state', ajoute :
-socket.on('state', (state) => {
-    // ... autres états ...
-    webcamEnabled = state.webcamEnabled || false;
-    updateWebcamButton(webcamEnabled);
-});
+            try {
+                const response = await fetch('/api/presentation/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: presentationMode })
+                });
 
+                const data = await response.json();
+
+                if (data.success) {
+                    updatePresentationMode(presentationMode);
+                }
+            } catch (error) {
+                console.error('Erreur mode présentation:', error);
+            }
+        });
+
+        function updatePresentationMode(enabled) {
+            const btn = document.getElementById('presentationToggleBtn');
+            const modeText = document.getElementById('currentModeText');
+            const slideControls = document.getElementById('slideControls');
+
+            btn.textContent = enabled ?  '📊 Mode Présentation' : '📜 Mode Prompteur';
+            btn.classList.toggle('active', enabled);
+            modeText.textContent = enabled ? 'Prompteur' : 'Présentation';
+            slideControls.style.display = enabled ? 'block' : 'none';
+
+            console.log(`Mode: ${enabled ? 'Présentation' : 'Prompteur'}`);
+        }
+
+        // ========== NAVIGATION SLIDES ==========
+        document.getElementById('slidePrevBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/presentation/prev', { method: 'POST' });
+            } catch (error) {
+                console.error('Erreur navigation slide:', error);
+            }
+        });
+
+        document.getElementById('slideNextBtn').addEventListener('click', async () => {
+            try {
+                await fetch('/api/presentation/next', { method: 'POST' });
+            } catch (error) {
+                console.error('Erreur navigation slide:', error);
+            }
+        });
+
+        // ========== WEBSOCKET LISTENERS ==========
+        // Ajoute ces handlers dans ton fichier admin.js ou ici
+
+        // Dans socket.on('update'):
+        // if (data.type === 'presentation-update') {
+        //     presentationMode = data.state.presentationMode;
+        //     updatePresentationMode(presentationMode);
+        // }
+
+        // if (data.type === 'slide-update') {
+        //     document.getElementById('currentSlide').textContent = data.current + 1;
+        //     document.getElementById('totalSlides').textContent = data.total;
+        // }
+
+        // Dans socket.on('state'):
+        // presentationMode = state.presentationMode || false;
+        // updatePresentationMode(presentationMode);
     </script>
 </body>
 </html>

@@ -4,19 +4,39 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Prompteur</title>
+    
+    <!-- CSS Prompteur -->
     <link rel="stylesheet" href="css/prompteur.css">
+    
+    <!-- 🎨 Reveal.js CSS (npm) -->
+    <link rel="stylesheet" href="/node_modules/reveal.js/dist/reveal.css">
+    <link rel="stylesheet" href="/node_modules/reveal.js/dist/theme/black.css">
+    <link rel="stylesheet" href="/node_modules/reveal.js/plugin/highlight/monokai.css">
 </head>
 <body>
     <!-- 📹 Vidéo webcam en arrière-plan -->
     <video id="webcam" autoplay muted playsinline></video>
 
-    <!-- Container du texte -->
+    <!-- Container du texte (mode Prompteur) -->
     <div id="prompteur-wrapper">
         <div id="prompteur-container">
             <div id="prompteur-content"></div>
         </div>
     </div>
 
+    <!-- Container de présentation (mode Reveal.js) -->
+    <div id="presentation-container" class="reveal">
+        <div class="slides" id="reveal-slides">
+            <!-- Les slides seront générés dynamiquement -->
+        </div>
+    </div>
+
+    <!-- 📦 Scripts Reveal.js (npm) -->
+    <script src="/node_modules/reveal.js/dist/reveal.js"></script>
+    <script src="/node_modules/reveal.js/plugin/markdown/markdown.js"></script>
+    <script src="/node_modules/reveal.js/plugin/highlight/highlight.js"></script>
+
+    <!-- Scripts de l'application -->
     <script src="js/markdown-parser.js"></script>
     <script src="js/prompteur.js"></script>
 </body>

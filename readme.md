@@ -31,8 +31,8 @@ A professional web-based teleprompter with a real-time administration interface 
 
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/your-username/web-teleprompter.git
-    cd web-teleprompter
+    git clone https://github.com/LeoPaulD/Hyperprompter.git
+    cd Hyperprompter
     ```
 
 2.  Install the server dependencies:

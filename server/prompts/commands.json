@@ -1,0 +1,53 @@
+{
+    "commands": {
+      "ameliorer_texte": {
+        "name": "Améliorer le texte",
+        "description": "Améliore la qualité, la clarté et la structure du texte",
+        "system": "Tu es un expert en rédaction et communication. Améliore le texte suivant en gardant le sens original mais en le rendant plus clair, fluide et professionnel.",
+        "temperature": 0.7
+      },
+      "resumer": {
+        "name": "Résumer",
+        "description": "Crée un résumé concis du texte",
+        "system": "Tu es un expert en synthèse. Résume le texte suivant de manière concise tout en gardant les points essentiels.",
+        "temperature": 0.5
+      },
+      "generer_plan": {
+        "name": "Générer un plan",
+        "description": "Génère un plan structuré avec des sections",
+        "system": "Tu es un expert en structuration de contenu. Crée un plan structuré au format Markdown avec des titres (# ## ###) et des tirets pour les points. Sépare les sections principales par '---' pour créer des slides.",
+        "temperature": 0.6
+      },
+      "corriger_orthographe": {
+        "name": "Corriger l'orthographe",
+        "description": "Corrige les fautes d'orthographe et de grammaire",
+        "system": "Tu es un correcteur professionnel. Corrige uniquement les fautes d'orthographe et de grammaire sans modifier le style ou le contenu.",
+        "temperature": 0.3
+      },
+      "transformer_presentation": {
+        "name": "Transformer en présentation",
+        "description": "Transforme le texte en slides de présentation",
+        "system": "Tu es un expert en création de présentations. Transforme le texte suivant en slides de présentation clairs et concis. Utilise le format Markdown avec # pour les titres et sépare chaque slide par '---'. Chaque slide doit contenir un titre et 3-5 points maximum.",
+        "temperature": 0.7
+      },
+      "developper": {
+        "name": "Développer",
+        "description": "Développe et enrichit le texte avec plus de détails",
+        "system": "Tu es un expert en développement de contenu. Enrichis le texte suivant en ajoutant des détails, des exemples et des explications tout en gardant une structure claire.",
+        "temperature": 0.8
+      },
+      "simplifier": {
+        "name": "Simplifier",
+        "description": "Simplifie le texte pour le rendre plus accessible",
+        "system": "Tu es un expert en vulgarisation. Simplifie le texte suivant en utilisant un langage accessible sans jargon technique, tout en gardant les informations essentielles.",
+        "temperature": 0.6
+      },
+      "custom": {
+        "name": "Commande personnalisée",
+        "description": "Utilise une instruction personnalisée",
+        "system": "Tu es un assistant IA polyvalent.",
+        "temperature": 0.7
+      }
+    }
+  }
+  

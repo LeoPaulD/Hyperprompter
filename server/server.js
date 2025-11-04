@@ -3,6 +3,9 @@ const WebSocket = require('ws');
 const http = require('http');
 const path = require('path');
 const cors = require('cors');
+require('dotenv').config(); 
+const mammouthService = require('./mammouth'); // 🆕
+
 
 const app = express();
 const server = http.createServer(app);
@@ -13,6 +16,14 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 // 🆕 Servir node_modules depuis le dossier server
 app.use('/node_modules', express.static(path.join(__dirname, 'node_modules')));
+
+
+function calculateSlideCount(text) {
+  if (!text || text.trim() === '') return 1;
+  const count = (text.match(/---/g) || []).length + 1;
+  console.log(`📊 Calcul slides: ${count} détectés`);
+  return count;
+}
 
 // État global du prompteur
 let prompteurState = {
@@ -28,8 +39,95 @@ let prompteurState = {
   // 🆕 Ajouts pour Reveal.js
   presentationMode: false,  // Mode présentation activé/désactivé
   currentSlide: 0,          // Index du slide actuel
-  totalSlides: 0            // Nombre total de slides
+  totalSlides: 1            // Nombre total de slides
 };
+
+// ========== API REST - MAMMOUTH AI ==========
+
+// GET - Liste des commandes disponibles
+app.get('/api/mammouth/commands', (req, res) => {
+  const commands = mammouthService.getAvailableCommands();
+  res.json({ 
+    success: true, 
+    commands,
+    configured: mammouthService.isConfigured()
+  });
+});
+
+// POST - Exécuter une commande
+app.post('/api/mammouth/execute', async (req, res) => {
+  try {
+    const { command, text, customPrompt } = req.body;
+
+    if (!text || text.trim() === '') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Le texte est requis' 
+      });
+    }
+
+    let result;
+
+    // Exécuter la commande appropriée
+    switch(command) {
+      case 'ameliorer_texte':
+        result = await mammouthService.ameliorerTexte(text);
+        break;
+      case 'resumer':
+        result = await mammouthService.resumer(text);
+        break;
+      case 'generer_plan':
+        result = await mammouthService.genererPlan(text);
+        break;
+      case 'corriger_orthographe':
+        result = await mammouthService.corrigerOrthographe(text);
+        break;
+      case 'transformer_presentation':
+        result = await mammouthService.transformerPresentation(text);
+        break;
+      case 'developper':
+        result = await mammouthService.developper(text);
+        break;
+      case 'simplifier':
+        result = await mammouthService.simplifier(text);
+        break;
+      case 'custom':
+        if (!customPrompt) {
+          return res.status(400).json({ 
+            success: false, 
+            error: 'Le prompt personnalisé est requis' 
+          });
+        }
+        result = await mammouthService.custom(text, customPrompt);
+        break;
+      default:
+        return res.status(400).json({ 
+          success: false, 
+          error: `Commande inconnue: ${command}` 
+        });
+    }
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('❌ Erreur Mammouth:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message 
+    });
+  }
+});
+
+// GET - Statut de l'API
+app.get('/api/mammouth/status', (req, res) => {
+  res.json({
+    configured: mammouthService.isConfigured(),
+    model: process.env.MAMMOUTH_MODEL || 'gpt-4.1'
+  });
+});
+
+prompteurState.totalSlides = calculateSlideCount(prompteurState.text);
+console.log(`✅ État initial: ${prompteurState.totalSlides} slide(s)`);
 
 // Diffusion aux clients WebSocket
 function broadcast(data) {
@@ -75,9 +173,22 @@ wss.on('connection', (ws) => {
 // ========== API REST - ÉTAT ==========
 
 // GET - Récupérer l'état
-app.get('/api/state', (req, res) => {
-  res.json(prompteurState);
+// POST - Mettre à jour le texte
+app.post('/api/text', (req, res) => {
+  prompteurState.text = req.body.text;
+
+  // 🔧 Calculer le nombre de slides avec la fonction
+  prompteurState.totalSlides = calculateSlideCount(prompteurState.text);
+
+  console.log(`📝 Texte mis à jour (${prompteurState.totalSlides} slides détectés)`);
+
+  broadcast({ type: 'text-update', state: prompteurState });
+  res.json({ 
+    success: true, 
+    totalSlides: prompteurState.totalSlides 
+  });
 });
+
 
 // ========== API REST - TEXTE ==========
 
@@ -242,22 +353,23 @@ app.post('/api/webcam/blur', (req, res) => {
 // POST - Toggle mode présentation
 app.post('/api/presentation/toggle', (req, res) => {
   prompteurState.presentationMode = !prompteurState.presentationMode;
-  
+
   if (prompteurState.presentationMode) {
-    // Passer en mode présentation : pause le défilement auto
+    // 🔧 Recalculer les slides à chaque activation
+    prompteurState.totalSlides = calculateSlideCount(prompteurState.text);
     prompteurState.isPlaying = false;
     prompteurState.currentSlide = 0;
-    console.log('🎨 Mode PRÉSENTATION activé');
+    
+    console.log(`🎨 Mode PRÉSENTATION activé (${prompteurState.totalSlides} slides)`);
   } else {
-    // Retour en mode prompteur
     console.log('📜 Mode PROMPTEUR activé');
   }
-  
+
   broadcast({ 
     type: 'presentation-toggle', 
     state: prompteurState 
   });
-  
+
   res.json({ 
     success: true, 
     presentationMode: prompteurState.presentationMode,
@@ -265,6 +377,7 @@ app.post('/api/presentation/toggle', (req, res) => {
     totalSlides: prompteurState.totalSlides
   });
 });
+
 
 // POST - Slide suivant
 app.post('/api/presentation/next', (req, res) => {

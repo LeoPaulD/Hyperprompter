@@ -352,7 +352,97 @@ header h1 {
     background: #4caf50;
 }
 
+/* ========== IA CONTROLS ========== */
 
+.ai-button-container {
+    position: relative;
+    display: inline-block;
+}
+
+.btn-ai {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-ai:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.ai-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    min-width: 280px;
+    max-width: 350px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.ai-menu-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+}
+
+.ai-status {
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+
+.ai-menu-content {
+    padding: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.ai-command {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.ai-command:hover {
+    background: #f5f5f5;
+    border-color: #667eea;
+    transform: translateX(4px);
+}
+
+.ai-custom-section {
+    padding: 12px;
+    border-top: 1px solid #e0e0e0;
+    background: #f9f9f9;
+}
+
+.ai-custom-input {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
 
 /* Responsive */
 @media (max-width: 1024px) {

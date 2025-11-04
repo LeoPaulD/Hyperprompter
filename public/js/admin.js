@@ -253,7 +253,286 @@ class PrompterAdmin {
     }
 }
 
-// Initialisation
+// ==================== GESTION IA ====================
+class AIManager {
+    constructor(textareaId, apiBaseUrl = '/api/mammouth') {
+        this.textarea = document.getElementById(textareaId);
+        this.apiBaseUrl = apiBaseUrl;
+        this.commands = [];
+        
+        if (!this.textarea) {
+            console.error('❌ Textarea introuvable:', textareaId);
+            return;
+        }
+        
+        this.loadCommands();
+    }
+
+    // Obtenir la sélection ou tout le texte
+    getSelectedText() {
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        return this.textarea.value.substring(start, end);
+    }
+
+    // Remplacer la sélection
+    replaceSelection(newText) {
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const before = this.textarea.value.substring(0, start);
+        const after = this.textarea.value.substring(end);
+        
+        this.textarea.value = before + newText + after;
+        
+        // Repositionner le curseur
+        const newPosition = start + newText.length;
+        this.textarea.setSelectionRange(newPosition, newPosition);
+        this.textarea.focus();
+    }
+
+    // Obtenir tout le texte
+    getValue() {
+        return this.textarea.value;
+    }
+
+    // Définir tout le texte
+    setValue(text) {
+        this.textarea.value = text;
+    }
+
+    async loadCommands() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/commands`);
+            const data = await response.json();
+            
+            if (data.commands) {
+                this.commands = data.commands;
+                this.renderCommands();
+                console.log('✅ Commandes IA chargées:', this.commands.length);
+            }
+        } catch (error) {
+            console.error('❌ Erreur chargement commandes:', error);
+            this.showStatus('❌ Erreur', 'error');
+        }
+    }
+
+    renderCommands() {
+        const menuContent = document.getElementById('aiMenuContent');
+        if (!menuContent) return;
+
+        menuContent.innerHTML = this.commands.map(cmd => `
+            <button class="ai-command" 
+                    data-command="${cmd.id}" 
+                    title="${cmd.description || ''}">
+                ${cmd.icon || '✨'} ${cmd.name}
+            </button>
+        `).join('');
+
+        this.showStatus('✅ Prêt', 'ready');
+    }
+
+    showStatus(text, type = 'info') {
+        const statusEl = document.getElementById('aiStatus');
+        if (statusEl) {
+            statusEl.textContent = text;
+            statusEl.className = `ai-status ${type}`;
+        }
+    }
+
+    showLoader(text = 'Traitement...') {
+        const loader = document.getElementById('aiLoader');
+        const loaderText = document.getElementById('aiLoaderText');
+        
+        if (loader) loader.style.display = 'flex';
+        if (loaderText) loaderText.textContent = text;
+        this.showStatus('⏳ En cours...', 'loading');
+    }
+
+    hideLoader() {
+        const loader = document.getElementById('aiLoader');
+        if (loader) loader.style.display = 'none';
+        this.showStatus('✅ Prêt', 'ready');
+    }
+
+    async executeCommand(commandId, customPrompt = null) {
+        const selectedText = this.getSelectedText();
+        const fullText = this.getValue();
+        const textToProcess = selectedText || fullText;
+
+        if (!textToProcess.trim()) {
+            alert('⚠️ Veuillez entrer ou sélectionner du texte');
+            return;
+        }
+
+        const command = this.commands.find(cmd => cmd.id === commandId);
+        if (!command && !customPrompt) {
+            throw new Error(`Commande inconnue: ${commandId}`);
+        }
+
+        try {
+            this.showLoader(command ? command.name : 'Traitement personnalisé...');
+
+            const response = await fetch(`${this.apiBaseUrl}/execute`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    command: commandId,
+                    text: textToProcess,
+                    customPrompt: customPrompt
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erreur API');
+            }
+
+            const result = data.content || data.result;
+            
+            if (!result) {
+                throw new Error('L\'API n\'a pas retourné de résultat');
+            }
+
+            // Remplacer le texte
+            if (selectedText) {
+                this.replaceSelection(result);
+            } else {
+                this.setValue(result);
+            }
+
+            this.showNotification('✅ Commande exécutée avec succès');
+            console.log('✅ Commande exécutée:', commandId);
+
+        } catch (error) {
+            console.error('❌ Erreur exécution commande:', error);
+            this.showNotification(`❌ ${error.message}`, 'error');
+            this.showStatus('❌ Erreur', 'error');
+        } finally {
+            this.hideLoader();
+        }
+    }
+
+    showNotification(message, type = 'success') {
+        const notif = document.getElementById('notification');
+        if (notif) {
+            notif.textContent = message;
+            notif.className = `notification ${type} show`;
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        } else {
+            alert(message);
+        }
+    }
+}
+
+// ==================== INITIALISATION ====================
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Initialisation de l\'admin...');
     new PrompterAdmin();
+    // 1. Initialiser l'AI Manager (textarea simple)
+    window.aiManager = new AIManager('textEditor');
+    console.log('✅ AI Manager initialisé');
+
+    // 2. Toggle menu IA
+    const aiBtn = document.getElementById('aiBtn');
+    const aiMenu = document.getElementById('aiMenu');
+
+    if (aiBtn && aiMenu) {
+        aiBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = aiMenu.style.display !== 'none';
+            aiMenu.style.display = isVisible ? 'none' : 'block';
+            console.log('🖱️ Menu IA:', isVisible ? 'fermé' : 'ouvert');
+        });
+
+        // Fermer si clic ailleurs
+        document.addEventListener('click', (e) => {
+            if (!aiMenu.contains(e.target) && e.target !== aiBtn) {
+                aiMenu.style.display = 'none';
+            }
+        });
+
+        console.log('✅ Event listeners IA configurés');
+    }
+
+    // 3. Event delegation pour les commandes IA
+    document.addEventListener('click', async (e) => {
+        if (e.target.classList.contains('ai-command')) {
+            const command = e.target.dataset.command;
+            
+            if (command === 'custom') {
+                const customPrompt = document.getElementById('customPrompt')?.value;
+                if (!customPrompt) {
+                    alert('⚠️ Veuillez entrer une instruction');
+                    return;
+                }
+                await window.aiManager.executeCommand('custom', customPrompt);
+            } else {
+                await window.aiManager.executeCommand(command);
+            }
+        }
+    });
+
+    // 4. Bouton Enregistrer
+    const saveBtn = document.getElementById('saveBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveText);
+    }
+
+    // 5. Raccourcis clavier
+    const textarea = document.getElementById('textEditor');
+    if (textarea) {
+        textarea.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                saveText();
+            }
+        });
+    }
+
+    // 6. Charger le texte initial
+    loadInitialText();
 });
+
+// Fonction pour sauvegarder
+async function saveText() {
+    const textarea = document.getElementById('textEditor');
+    const saveStatus = document.getElementById('saveStatus');
+    
+    try {
+        saveStatus.textContent = '💾 Enregistrement...';
+        saveStatus.className = 'save-status';
+        
+        const response = await fetch('/api/text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: textarea.value })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            saveStatus.textContent = '✅ Enregistré';
+            saveStatus.className = 'save-status success';
+            setTimeout(() => saveStatus.textContent = '', 2000);
+        }
+    } catch (error) {
+        console.error('Erreur sauvegarde:', error);
+        saveStatus.textContent = '❌ Erreur';
+        saveStatus.className = 'save-status error';
+    }
+}
+
+// Fonction pour charger le texte
+async function loadInitialText() {
+    const textarea = document.getElementById('textEditor');
+    try {
+        const response = await fetch('/api/state');
+        const state = await response.json();
+        if (state.text) {
+            textarea.value = state.text;
+        }
+    } catch (error) {
+        console.error('Erreur chargement texte:', error);
+    }
+}

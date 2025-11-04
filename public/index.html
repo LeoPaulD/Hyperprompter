@@ -30,9 +30,43 @@
                             📤 Exporter .md
                         </button>
                         <input type="file" id="fileInput" accept=".md,.txt" style="display: none;">
+                        
+                        <!-- Bouton IA -->
+                        <div class="ai-button-container">
+                            <button id="aiBtn" class="btn btn-ai">
+                                ✨ IA
+                            </button>
+                            <div id="aiMenu" class="ai-menu" style="display: none;">
+                                <div class="ai-menu-header">
+                                    <span>🤖 Assistant IA</span>
+                                    <span id="aiStatus" class="ai-status">Chargement...</span>
+                                </div>
+
+                                <div class="ai-loader" id="aiLoader" style="display: none;">
+                                    <div class="spinner"></div>
+                                    <p id="aiLoaderText">Traitement en cours...</p>
+                                </div>
+
+                                <div class="ai-menu-content" id="aiMenuContent">
+                                    <!-- Les commandes seront injectées dynamiquement par admin.js -->
+                                </div>
+
+                                <div class="ai-custom-section">
+                                    <input 
+                                        type="text" 
+                                        id="customPrompt" 
+                                        placeholder="Instruction personnalisée..."
+                                        class="ai-custom-input"
+                                    >
+                                    <button class="ai-command" data-command="custom">
+                                        🎨 Exécuter
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <textarea id="textEditor" placeholder="Écrivez votre texte en Markdown..."></textarea>
+                <textarea id="textEditor" placeholder="Écrivez votre texte en Markdown..."></textarea>          
                 <button id="updateTextBtn" class="btn btn-success">
                     ✓ Mettre à jour le prompteur
                 </button>
@@ -42,17 +76,17 @@
             <aside class="control-panel">
                 <h2>Contrôles</h2>
 
-                <!-- 🆕 MODE PRÉSENTATION -->
+                <!-- MODE PRÉSENTATION -->
                 <div class="control-group">
                     <button id="presentationToggleBtn" class="btn btn-mode">
-                        📊 Mode Présentation
+                        📜 Mode Prompteur
                     </button>
                     <div class="mode-indicator">
                         Mode actuel: <strong id="currentModeText">Prompteur</strong>
                     </div>
                 </div>
 
-                <!-- 🆕 NAVIGATION SLIDES (caché par défaut) -->
+                <!-- NAVIGATION SLIDES (caché par défaut) -->
                 <div id="slideControls" class="control-group" style="display: none;">
                     <h3>Navigation Slides</h3>
                     <div class="control-buttons">
@@ -121,6 +155,12 @@
         </div>
     </div>
 
+    <!-- Notification toast -->
+    <div id="notification" class="notification"></div>
+   
+   
+    
+    <!-- Scripts de l'application -->
     <script src="js/markdown-parser.js"></script>
     <script src="js/admin.js"></script>
     <script>
@@ -143,7 +183,7 @@
                     updateWebcamButton(webcamEnabled);
                 }
             } catch (error) {
-                console.error('Erreur webcam:', error);
+                console.error('❌ Erreur webcam:', error);
             }
         });
 
@@ -172,7 +212,7 @@
                     updatePresentationMode(presentationMode);
                 }
             } catch (error) {
-                console.error('Erreur mode présentation:', error);
+                console.error('❌ Erreur mode présentation:', error);
             }
         });
 
@@ -181,48 +221,32 @@
             const modeText = document.getElementById('currentModeText');
             const slideControls = document.getElementById('slideControls');
 
-            btn.textContent = enabled ?  '📊 Mode Présentation' : '📜 Mode Prompteur';
+            btn.textContent = enabled ? '📊 Mode Présentation' : '📜 Mode Prompteur';
             btn.classList.toggle('active', enabled);
-            modeText.textContent = enabled ? 'Prompteur' : 'Présentation';
+            modeText.textContent = enabled ? 'Présentation' : 'Prompteur';
             slideControls.style.display = enabled ? 'block' : 'none';
 
-            console.log(`Mode: ${enabled ? 'Présentation' : 'Prompteur'}`);
+            console.log(`✅ Mode: ${enabled ? 'Présentation' : 'Prompteur'}`);
         }
 
         // ========== NAVIGATION SLIDES ==========
         document.getElementById('slidePrevBtn').addEventListener('click', async () => {
             try {
                 await fetch('/api/presentation/prev', { method: 'POST' });
+                console.log('⬅️ Slide précédent');
             } catch (error) {
-                console.error('Erreur navigation slide:', error);
+                console.error('❌ Erreur navigation slide:', error);
             }
         });
 
         document.getElementById('slideNextBtn').addEventListener('click', async () => {
             try {
                 await fetch('/api/presentation/next', { method: 'POST' });
+                console.log('➡️ Slide suivant');
             } catch (error) {
-                console.error('Erreur navigation slide:', error);
+                console.error('❌ Erreur navigation slide:', error);
             }
         });
-
-        // ========== WEBSOCKET LISTENERS ==========
-        // Ajoute ces handlers dans ton fichier admin.js ou ici
-
-        // Dans socket.on('update'):
-        // if (data.type === 'presentation-update') {
-        //     presentationMode = data.state.presentationMode;
-        //     updatePresentationMode(presentationMode);
-        // }
-
-        // if (data.type === 'slide-update') {
-        //     document.getElementById('currentSlide').textContent = data.current + 1;
-        //     document.getElementById('totalSlides').textContent = data.total;
-        // }
-
-        // Dans socket.on('state'):
-        // presentationMode = state.presentationMode || false;
-        // updatePresentationMode(presentationMode);
     </script>
 </body>
 </html>
